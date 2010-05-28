@@ -1,7 +1,8 @@
 Changelog
 =========
 
-0.1devdev (unreleased)
-----------------------
+0.1dev (2010-05-29)
+-------------------
 
 - Initial release
+  [seletz]
