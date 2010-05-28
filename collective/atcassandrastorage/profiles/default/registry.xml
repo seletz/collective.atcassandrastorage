@@ -1,0 +1,14 @@
+<registry>
+
+    <records interface="collective.atcassandrastorage.interfaces.ICassandraSettings" purge="True">
+        <value key="connection_timeout">5</value>
+        <value key="username">cassandra</value>
+        <value key="password">cassandra</value>
+        <value key="servers">
+            <element>127.0.0.1:9160</element>
+        </value>
+    </records>
+
+</registry>
+
+

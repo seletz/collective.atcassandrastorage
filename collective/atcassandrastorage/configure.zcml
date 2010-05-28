@@ -5,7 +5,18 @@
     i18n_domain="collective.atcassandrastorage">
 
   <five:registerPackage package="." initialize=".initialize" />
+  <include package="plone.app.registry" />
+
+  <!-- Register the installation GenericSetup extension profile -->
+  <genericsetup:registerProfile
+      name="default"
+      title="collective.pfg.cassandra"
+      directory="profiles/default"
+      description=""
+      provides="Products.GenericSetup.interfaces.EXTENSION"
+      />
 
   <!-- -*- extra stuff goes here -*- -->
+  <subscriber handler=".settings.settings_changed" />
   
 </configure>
