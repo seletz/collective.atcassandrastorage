@@ -31,15 +31,18 @@ import pycassa
 
 from zope import interface
 
+from Acquisition import aq_base
 from AccessControl import ClassSecurityInfo
 
 from Products.Archetypes.interfaces.storage import IStorage
+
+from Products.Archetypes.Storage import _marker
 from Products.Archetypes.Storage import Storage
 
 from Products.Archetypes.Registry import setSecurity
 from Products.Archetypes.Registry import registerStorage
 
-from CMFPlone.utils import safe_unicode
+from Products.CMFPlone.utils import safe_unicode
 
 from collective.atcassandrastorage import db
 
@@ -56,32 +59,51 @@ class CassandraFieldStorage(Storage):
 
     encoding = "utf-8"
 
-    def __init__(self, keyspace, column_family):
+    def __init__(self, keyspace, column_family, fallback=False):
         logger.info("CassandraFieldStorage.__init__: keyspace=%s, column_family=%s" % (keyspace, column_family))
         self.keyspace = keyspace
-        self.cf_name = column_family
-        self.data = db.get_column_family(keyspace, column_family)
+        self.column_family = column_family
+        self.fallback = fallback
+        self._data = None
 
     def key_for_istance(self, instance):
-        return instance.getUID()
+        return instance.UID()
+
+    @property
+    def data(self):
+        if self._data is None:
+            logger.info("CassandraFieldStorage.data: first call.")
+            self._data = db.get_column_family(self.keyspace, self.column_family)
+        return self._data
 
     security.declarePrivate('get')
     def get(self, name, instance, **kwargs):
-        logger.info("CassandraFieldStorage.get: name=%s, instance=%s, kw=%s" % (name, repr(instance), kw))
+        logger.info("CassandraFieldStorage.get: name=%s, instance=%s, kw=%s" % (name, repr(instance), kwargs))
         key = self.key_for_istance(instance)
 
         try:
             data = self.data.get(key)
-        except (pycassa.NotFoundException, pycassa.NoServerAvailable), e:
+        except pycassa.NotFoundException, e:
+            if self.fallback:
+                value = getattr(aq_base(instance), name, _marker)
+                if value is not _marker:
+                    return value
+
+            raise AttributeError(name)
+        except pycassa.NoServerAvailable, e:
             raise AttributeError("CassandraFieldStorage: exception %s accessing %s.%s.%s" %
-                    (repr(e), self.keyspace, self.cf_name, key))
+                    (repr(e), self.keyspace, self.column_family, key))
+
+        if not name in data:
+            raise AttributeError(name)
 
         return safe_unicode(data[name], CassandraFieldStorage.encoding)
 
     security.declarePrivate('set')
     def set(self, name, instance, value, **kwargs):
-        logger.info("CassandraFieldStorage.get: name=%s, instance=%s, value=%s ..., kw=%s" % (name, repr(instance), str(value)[:20], kw))
+        logger.info("CassandraFieldStorage.get: name=%s, instance=%s, value=%s ..., kw=%s" % (name, repr(instance), str(value)[:20], kwargs))
         key = self.key_for_istance(instance)
+        value = str(value) # BaseUnit
         self.data.insert(key, {name: value.encode(CassandraFieldStorage.encoding)})
 
     security.declarePrivate('unset')

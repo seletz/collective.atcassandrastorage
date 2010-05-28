@@ -38,24 +38,24 @@ logger = logging.getLogger("collective.pfg.cassandra")
 def get_client(keyspace):
     config = settings.get_config()
 
-    logger.debug("get_client: servers: %s, timeout: %s, user: %s, pass: %s" % (
-        config.get("servers"),
-        config.get("timeout"),
-        config.get("username"),
-        config.get("password")))
+    logger.info("get_client: servers: %s, timeout: %s, user: %s, pass: %s" % (
+        config.servers,
+        config.connection_timeout,
+        config.username,
+        config.password))
 
     client = pycassa.connect_thread_local(
-                config.get("servers"),
-                timeout=config.get("timeout", 5)
+                config.servers,
+                timeout=config.connection_timeout
             )
 
-    cred = dict(username=config.get("username"), password=config.get("password"))
+    cred = dict(username=config.username, password=config.password)
     client.login(keyspace, cred)
-    logger.debug("get_client => %s" % repr(client))
+    logger.info("get_client => %s" % repr(client))
     return client
 
 def get_column_family(keyspace, name):
-    client = get_client()
+    client = get_client(keyspace)
     return pycassa.ColumnFamily(client, keyspace, name)
 
 # vim: set ft=python ts=4 sw=4 expandtab :

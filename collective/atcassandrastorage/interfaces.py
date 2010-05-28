@@ -25,10 +25,10 @@ __revision__  = "$Revision: $"
 __version__   = '$Revision: $'[11:-2]
 
 
-from zope import imterface
+from zope import interface
 from zope import schema
 
-class ICassandraSettings(Interface):
+class ICassandraSettings(interface.Interface):
 
     connection_timeout = schema.Int(title=u"The connection timeout in seconds to use", default=5)
     servers = schema.List(
