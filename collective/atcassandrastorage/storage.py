@@ -68,7 +68,7 @@ class CassandraFieldStorage(Storage):
         self.fallback = fallback
         self._data = None
 
-    def key_for_istance(self, instance):
+    def key_for_instance(self, instance):
         keygen = component.queryAdapter(instance, IInstanceKey)
         if keygen:
             return keygen.key()
@@ -84,7 +84,7 @@ class CassandraFieldStorage(Storage):
     security.declarePrivate('get')
     def get(self, name, instance, **kwargs):
         logger.info("CassandraFieldStorage.get: name=%s, instance=%s, kw=%s" % (name, repr(instance), kwargs))
-        key = self.key_for_istance(instance)
+        key = self.key_for_instance(instance)
 
         try:
             data = self.data.get(key)
@@ -107,7 +107,7 @@ class CassandraFieldStorage(Storage):
     security.declarePrivate('set')
     def set(self, name, instance, value, **kwargs):
         logger.info("CassandraFieldStorage.get: name=%s, instance=%s, value=%s ..., kw=%s" % (name, repr(instance), str(value)[:20], kwargs))
-        key = self.key_for_istance(instance)
+        key = self.key_for_instance(instance)
         value = str(value) # BaseUnit
         self.data.insert(key, {name: value.encode(CassandraFieldStorage.encoding)})
 
@@ -115,7 +115,7 @@ class CassandraFieldStorage(Storage):
     def unset(self, name, instance, **kwargs):
         logger.info("CassandraFieldStorage.unset: name=%s, instance=%s, kw=%s" % (name, repr(instance), kw))
 
-        key = self.key_for_istance(instance)
+        key = self.key_for_instance(instance)
         try:
             self.data.remove(key, columns=[name])
         except (pycassa.NotFoundException, pycassa.NoServerAvailable), e:

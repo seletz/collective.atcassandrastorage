@@ -10,9 +10,17 @@ from Products.PloneTestCase.layer import PloneSite
 ptc.setupPloneSite()
 
 import collective.atcassandrastorage
+from collective.atcassandrastorage import casa_mock
 
 
 class TestCase(ptc.PloneTestCase):
+
+    @property
+    def COLUMN_FAMILIES(self):
+        return casa_mock.COLUMN_FAMILIES
+
+    def zap_data(self):
+        casa_mock.ZapData()
 
     class layer(PloneSite):
 
@@ -22,9 +30,12 @@ class TestCase(ptc.PloneTestCase):
             ztc.installPackage(collective.atcassandrastorage)
             fiveconfigure.debug_mode = False
 
+            casa_mock.mock()
+
+
         @classmethod
         def tearDown(cls):
-            pass
+            casa_mock.unmock()
 
 
 def test_suite():
@@ -41,9 +52,9 @@ def test_suite():
 
 
         # Integration tests that use PloneTestCase
-        #ztc.ZopeDocFileSuite(
-        #    'README.txt', package='collective.atcassandrastorage',
-        #    test_class=TestCase),
+        ztc.ZopeDocFileSuite(
+            'storage.rst', package='collective.atcassandrastorage',
+            test_class=TestCase),
 
         #ztc.FunctionalDocFileSuite(
         #    'browser.txt', package='collective.atcassandrastorage',
