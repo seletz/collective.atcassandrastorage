@@ -4,7 +4,9 @@ Changelog
 0.2dev (unreleased)
 -------------------
 
-- no changes yet
+- Introduce IInstanceKey interface to allow to overwrite instance key
+  calculation.
+  [seletz]
 
 0.1 (2010-05-29)
 -------------------

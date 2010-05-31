@@ -30,6 +30,7 @@ import logging
 import pycassa
 
 from zope import interface
+from zope import component
 
 from Acquisition import aq_base
 from AccessControl import ClassSecurityInfo
@@ -44,6 +45,7 @@ from Products.Archetypes.Registry import registerStorage
 
 from Products.CMFPlone.utils import safe_unicode
 
+from collective.atcassandrastorage.interfaces  import IInstanceKey
 from collective.atcassandrastorage import db
 
 
@@ -67,6 +69,9 @@ class CassandraFieldStorage(Storage):
         self._data = None
 
     def key_for_istance(self, instance):
+        keygen = component.queryAdapter(instance, IInstanceKey)
+        if keygen:
+            return keygen.key()
         return instance.UID()
 
     @property

@@ -40,4 +40,11 @@ class ICassandraSettings(interface.Interface):
     username = schema.TextLine(title=u"The cassandra username")
     password = schema.TextLine(title=u"The cassandra password")
 
+class IInstanceKey(interface.Interface):
+    """An adapter which calculates the cassandra column family key for a given
+       instance"""
+
+    def key():
+       """Calculate and return the key to be used for the context"""
+
 # vim: set ft=python ts=4 sw=4 expandtab :

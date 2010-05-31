@@ -15,7 +15,7 @@ Reasoning
 =========
 
 For a customer project I'm doing right now I'm using *cassandra* as a storage
-backend for *Plone FormGen** data.  Now the need did arise to also have specific
+backend for *Plone FormGen* data.  Now the need did arise to also have specific
 fields of AT content types to be stored in cassandra as well.
 
 
