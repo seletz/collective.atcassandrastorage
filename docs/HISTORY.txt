@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.2dev (unreleased)
+0.2 (2010-05-31)
 -------------------
 
 - Added tests.
