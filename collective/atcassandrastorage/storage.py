@@ -26,6 +26,7 @@ __version__   = '$Revision: $'[11:-2]
 
 import os
 import logging
+import types
 
 import pycassa
 
@@ -106,9 +107,19 @@ class CassandraFieldStorage(Storage):
 
     security.declarePrivate('set')
     def set(self, name, instance, value, **kwargs):
-        logger.info("CassandraFieldStorage.get: name=%s, instance=%s, value=%s ..., kw=%s" % (name, repr(instance), str(value)[:20], kwargs))
+        logger.info("CassandraFieldStorage.set: name=%s, instance=%s, value=%s ..., kw=%s" % (name, repr(instance), str(value)[:20], kwargs))
         key = self.key_for_instance(instance)
-        value = str(value) # BaseUnit
+
+        field = kwargs.get("field")
+
+        if key is None:
+            logger.warning("CassandraFieldStorage.set: Field %s, instance %s: key is None. Cannot save data." %(field, repr(instance)))
+            return
+
+        if not isinstance(value, types.StringTypes):
+            # XXX: fix Image and File Fields!
+            value = str(value) # BaseUnit
+
         self.data.insert(key, {name: value.encode(CassandraFieldStorage.encoding)})
 
     security.declarePrivate('unset')
