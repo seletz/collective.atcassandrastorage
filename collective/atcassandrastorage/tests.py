@@ -1,4 +1,5 @@
 import unittest
+import doctest
 
 #from zope.testing import doctestunit
 #from zope.component import testing
@@ -11,9 +12,11 @@ ptc.setupPloneSite()
 
 import collective.atcassandrastorage
 from collective.atcassandrastorage import casa_mock
+from collective.atcassandrastorage import settings
 
 
-class TestCase(ptc.PloneTestCase):
+class FunctionalTestCase(ptc.PloneTestCase):
+
 
     @property
     def COLUMN_FAMILIES(self):
@@ -32,10 +35,54 @@ class TestCase(ptc.PloneTestCase):
 
             casa_mock.mock()
 
+            settings._get_config = settings.get_config
+
+            def fake_config():
+                class FakeConfig(object):
+                    servers = ["127.0.0.1:9160"]
+                    username = "user"
+                    password = "pass"
+                    connection_timeout = 42
+
+                return FakeConfig()
+            settings.get_config = fake_config
+
+
 
         @classmethod
         def tearDown(cls):
+            settings.get_config = settings._get_config
             casa_mock.unmock()
+
+class DocTestCase(unittest.TestCase):
+
+    @property
+    def COLUMN_FAMILIES(self):
+        return casa_mock.COLUMN_FAMILIES
+
+    def zap_data(self):
+        casa_mock.ZapData()
+
+    def setUp(cls):
+        casa_mock.mock()
+
+        settings._get_config = settings.get_config
+
+        def fake_config():
+            class FakeConfig(object):
+                servers = ["127.0.0.1:9160"]
+                username = "user"
+                password = "pass"
+                connection_timeout = 42
+
+            return FakeConfig()
+        settings.get_config = fake_config
+
+
+
+    def tearDown(cls):
+        settings.get_config = settings._get_config
+        casa_mock.unmock()
 
 
 def test_suite():
@@ -52,13 +99,19 @@ def test_suite():
 
 
         # Integration tests that use PloneTestCase
+        #ztc.ZopeDocFileSuite(
+            #'storage.rst', package='collective.atcassandrastorage',
+            #test_class=FunctionalTestCase),
+
+        #doctest.DocFileSuite(
         ztc.ZopeDocFileSuite(
-            'storage.rst', package='collective.atcassandrastorage',
-            test_class=TestCase),
+            'session.rst', package='collective.atcassandrastorage',
+            test_class=DocTestCase),
+
 
         #ztc.FunctionalDocFileSuite(
         #    'browser.txt', package='collective.atcassandrastorage',
-        #    test_class=TestCase),
+        #    test_class=FunctionalTestCase),
 
         ])
 

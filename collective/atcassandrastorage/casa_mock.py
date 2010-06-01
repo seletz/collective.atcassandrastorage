@@ -49,6 +49,9 @@ class MockCF(object):
             for c in columns:
                 del self.data[key][c]
 
+            if len(self.data[key].keys()) == 0:
+                del self.data[key]
+
     def get_count(self, key):
         if key in self.data:
              return len(self.data[key].keys())

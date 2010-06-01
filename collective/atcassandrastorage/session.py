@@ -28,7 +28,8 @@ import logging
 import pycassa
 import threading
 
-from collective.atcassandrastorage import settings
+from collections import defaultdict
+
 from collective.atcassandrastorage import db
 
 logger = logging.getLogger("collective.atcassandrastorage")
@@ -44,9 +45,22 @@ class ColumnFamily(object):
     def __init__(self, session, name):
         self.session = session
         self.name = name
+        self.column_family = pycassa.ColumnFamily(session.client, session.keyspace, name)
+        self.clear()
+
+    def clear(self):
         self.data = dict()
         self.removed = defaultdict(list) # removed columns per key
-        self.column_family = pycassa.ColumnFamily(session.client, session.keyspace, name)
+
+    def flush(self):
+        for key, row in self.data.iteritems():
+            if row is not remove_marker:
+                self.column_family.insert(key, row)
+
+        for key, columns in self.removed.iteritems():
+            self.column_family.remove(key, columns=columns)
+
+        self.clear()
 
     def __setitem__(self, key, data):
         assert isinstance(data, dict), "Can only set dict types"
@@ -63,8 +77,12 @@ class ColumnFamily(object):
 
             self.data[key].update(data)
         else:
-            data = self.column_family.get(key)
-            self.data[key] = data
+            d = {}
+            if self.column_family.get_count(key):
+                d = self.column_family.get(key)
+
+            d.update(data)
+            self.data[key] = d
 
     def __getitem__(self, key):
         if key in self.data:
@@ -75,22 +93,41 @@ class ColumnFamily(object):
         # not in session -- delegate
         return self.column_family.get(key)
 
+    def insert(self, key, data):
+        self[key] = data
+
+    def get(self, key):
+        return self[key]
+
     def remove(self, key, columns=None):
         if columns:
-            self.removed[key] = self.data[key].keys()
+            data = self.get(key)
+            dirty = False
             for c in columns:
-                if c in self.data[key]:
+                if c in data.keys():
+                    dirty = True
                     self.removed[key].append(c)
-                    del self.data[key][c]
+                    del data[c]
 
-            if len(self.data[key].keys()) == 0:
-                self.data[key] = remove_marker
+            if dirty:
+                if len(data.keys()):
+                    self.data[key] = data
+                else:
+                    self.data[key] = remove_marker
         else:
-            self.removed[key] = self.data[key].keys()
+            dirty = False
+            if key in self.data:
+                removed = self.data[key]
+            else:
+                removed = self.get(key)
+
+            self.removed[key] = removed.keys()
+
             self.data[key] = remove_marker
 
     def __repr__(self):
-        return "<ColumnFamily: %d key changes, %d removes>" % (
+        return "<ColumnFamily %s: %d key changes, %d removes>" % (
+                self.name,
                 len(self.data.keys()),
                 len(self.removed.keys()))
 
@@ -109,30 +146,48 @@ class ThreadLocalCassandraSession(object):
 
     __contains__ = in_session
 
+    def __getitem__(self, name):
+        return self.get_column_family(name)
+
+    def __len__(self):
+        return len(self._tl.column_families.keys())
+
+    def __iter__(self):
+        for name, cf in self._tl.column_families.iteritems():
+            yield cf
+
     def flush(self):
-        pass
+        for cf in self:
+            cf.flush()
+
+    def clear(self):
+        for cf in self:
+            cf.clear()
 
     def get_column_family(self, name):
         cf = self._tl.column_families.get(name, None)
         if cf is None:
-            return ColumnFamily(self, name)
+            cf = ColumnFamily(self, name)
+            self._tl.column_families[name] = cf
         return cf
 
     def __repr__(self):
         return "<ThreadLocalCassandraSession keyspace=%s id=%s>" %(self.keyspace, id(self))
 
+SESSIONS = None
 
-def make_session():
+def make_session(keyspace):
     """Make a new session"""
-    tl = threading.local()
-    if getattr(tl, "cassandra_sessions", None) is None:
-        tl.cassandra_sessions= dict()
+    global SESSIONS
+    if not SESSIONS:
+        SESSIONS = threading.local()
+        SESSIONS.sessions = dict()
 
-    if keyspace in tl.cassandra_sessions:
-        return tl.get(keyspace)
+    if keyspace in SESSIONS.sessions:
+        return SESSIONS.sessions.get(keyspace)
 
     session = ThreadLocalCassandraSession(keyspace)
-    tl.cassandra_sessions[keyspace] = session
+    SESSIONS.sessions[keyspace] = session
     logger.info("New session : %s" % (repr(session)))
 
     return session
