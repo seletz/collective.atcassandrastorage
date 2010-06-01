@@ -47,4 +47,23 @@ class IInstanceKey(interface.Interface):
     def key():
        """Calculate and return the key to be used for the context"""
 
+# Used by the transaction integration
+class ITransactionAware(Interface):
+    """Transaction-aware objects
+    """
+    
+    def begin():
+        """Begin the transaction
+        """
+        
+    def commit():
+        """Commit the transaction
+        """
+        
+    def rollback():
+        """Commit the transaction
+        """
+        
+    active = Attribute("True if the transaction is currently in-progress")
+
 # vim: set ft=python ts=4 sw=4 expandtab :

@@ -23,17 +23,13 @@ __docformat__ = 'plaintext'
 __revision__  = "$Revision: 5003 $"
 __version__   = '$Revision: 5003 $'[11:-2]
 
-import os
-import sys
-
 import logging
-
 import pycassa
 import urlparse
 
 from collective.atcassandrastorage import settings
 
-logger = logging.getLogger("collective.pfg.cassandra")
+logger = logging.getLogger("collective.atcassandrastorage")
 
 def get_client(keyspace):
     config = settings.get_config()
@@ -57,6 +53,8 @@ def get_client(keyspace):
 def get_column_family(keyspace, name):
     client = get_client(keyspace)
     return pycassa.ColumnFamily(client, keyspace, name)
+
+
 
 # vim: set ft=python ts=4 sw=4 expandtab :
 

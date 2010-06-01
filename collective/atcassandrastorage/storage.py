@@ -48,6 +48,7 @@ from Products.CMFPlone.utils import safe_unicode
 
 from collective.atcassandrastorage.interfaces  import IInstanceKey
 from collective.atcassandrastorage import db
+from collective.atcassandrastorage import session
 
 
 logger = logging.getLogger("collective.atcassandrastorage")
@@ -68,6 +69,7 @@ class CassandraFieldStorage(Storage):
         self.column_family = column_family
         self.fallback = fallback
         self._data = None
+        self._session = None
 
     def key_for_instance(self, instance):
         keygen = component.queryAdapter(instance, IInstanceKey)
@@ -78,8 +80,9 @@ class CassandraFieldStorage(Storage):
     @property
     def data(self):
         if self._data is None:
-            logger.info("CassandraFieldStorage.data: first call.")
-            self._data = db.get_column_family(self.keyspace, self.column_family)
+            self._session = session.make_session(self.keyspace)
+            self._data = self._session.get_column_family(self.column_family)
+
         return self._data
 
     security.declarePrivate('get')
@@ -88,13 +91,8 @@ class CassandraFieldStorage(Storage):
         key = self.key_for_instance(instance)
 
         try:
-            data = self.data.get(key)
+            data = self.data[key]
         except pycassa.NotFoundException, e:
-            if self.fallback:
-                value = getattr(aq_base(instance), name, _marker)
-                if value is not _marker:
-                    return value
-
             raise AttributeError(name)
         except pycassa.NoServerAvailable, e:
             raise AttributeError("CassandraFieldStorage: exception %s accessing %s.%s.%s" %
